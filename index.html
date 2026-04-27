@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>FitnessPro — Тренировки</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: var(--tg-theme-bg-color, #0f0f0f);
+            color: var(--tg-theme-text-color, #ffffff);
+            padding: 0;
+            margin: 0;
+        }
+
+        /* Шапка с прогрессом тренировки */
+        .workout-header {
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            padding: 20px 16px;
+            margin-bottom: 16px;
+        }
+
+        .workout-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .workout-date {
+            font-size: 14px;
+            color: #aaa;
+            margin-bottom: 16px;
+        }
+
+        .progress-stats {
+            display: flex;
+            gap: 16px;
+        }
+
+        .stat-item {
+            flex: 1;
+            text-align: center;
+            padding: 12px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 12px;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #ff6b35;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #aaa;
+        }
+
+        /* Блок упражнения */
+        .exercise-card {
+            background: var(--tg-theme-secondary-bg-color, #1e1e2e);
+            margin: 12px 16px;
+            border-radius: 20px;
+            overflow: hidden;
+        }
+
+        .exercise-header {
+            padding: 16px;
+            background: rgba(255,255,255,0.05);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .exercise-name {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .exercise-muscle {
+            font-size: 12px;
+            color: #ff6b35;
+        }
+
+        /* Навигация по подходам */
+        .set-nav {
+            display: flex;
+            gap: 8px;
+            padding: 12px 16px;
+            background: rgba(0,0,0,0.3);
+            overflow-x: auto;
+        }
+
+        .set-tab {
+            padding: 8px 16px;
+            border-radius: 20px;
+            background: rgba(255,255,255,0.1);
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        .set-tab.active {
+            background: #ff6b35;
+            color: white;
+        }
+
+        .set-tab.completed {
+            background: #2e7d32;
+        }
+
+        /* Поля ввода веса и повторений */
+        .set-inputs {
+            display: flex;
+            gap: 16px;
+            padding: 16px;
+        }
+
+        .input-group {
+            flex: 1;
+            text-align: center;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 12px;
+            color: #aaa;
+            margin-bottom: 8px;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 12px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.2);
+            background: var(--tg-theme-bg-color, #0f0f0f);
+            color: var(--tg-theme-text-color, #fff);
+            font-size: 20px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        /* Кнопки управления */
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+            padding: 16px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 14px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 16px;
+            cursor: pointer;
+            text-align: center;
+            transition: opacity 0.2s;
+        }
+
+        .btn-primary {
+            background: #ff6b35;
+            color: white;
+        }
+
+        .btn-secondary {
+            background: rgba(255,255,255,0.1);
+            color: var(--tg-theme-text-color, #fff);
+        }
+
+        .btn-danger {
+            background: rgba(220, 20, 60, 0.3);
+            color: #dc143c;
+        }
+
+        .add-comment {
+            padding: 12px 16px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            font-size: 14px;
+            color: #aaa;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Вкладки */
+        .tabs {
+            display: flex;
+            background: var(--tg-theme-secondary-bg-color, #1e1e2e);
+            margin: 16px 16px 0;
+            border-radius: 12px;
+            padding: 4px;
+        }
+
+        .tab {
+            flex: 1;
+            text-align: center;
+            padding: 12px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .tab.active {
+            background: #ff6b35;
+            color: white;
+        }
+
+        /* История выполнения */
+        .history-list {
+            margin: 16px;
+        }
+
+        .history-date {
+            font-size: 14px;
+            font-weight: 600;
+            margin: 16px 0 8px;
+            color: #ff6b35;
+        }
+
+        .history-item {
+            background: var(--tg-theme-secondary-bg-color, #1e1e2e);
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .history-set {
+            font-size: 14px;
+        }
+
+        .history-weight {
+            font-weight: bold;
+            color: #ff6b35;
+        }
+
+        .history-reps {
+            color: #aaa;
+        }
+
+        .history-time {
+            font-size: 12px;
+            color: #555;
+        }
+
+        /* График (canvas) */
+        .chart-container {
+            margin: 16px;
+            padding: 16px;
+            background: var(--tg-theme-secondary-bg-color, #1e1e2e);
+            border-radius: 16px;
+        }
+
+        canvas {
+            width: 100%;
+            height: 200px;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="workout-header">
+        <div class="workout-title" id="workoutName">Тренировка 3/8</div>
+        <div class="workout-date" id="workoutDate"></div>
+        <div class="progress-stats">
+            <div class="stat-item">
+                <div class="stat-value" id="totalSets">0</div>
+                <div class="stat-label">Всего подходов</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="completedSets">0</div>
+                <div class="stat-label">Выполнено</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="totalVolume">0</div>
+                <div class="stat-label">Объём, кг</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="exercise-card" id="exerciseCard">
+        <div class="exercise-header">
+            <div>
+                <div class="exercise-name" id="exerciseName">Приседания со штангой</div>
+                <div class="exercise-muscle" id="exerciseMuscle">Ноги</div>
+            </div>
+            <div class="exercise-muscle" id="exerciseZone"></div>
+        </div>
+
+        <div class="set-nav" id="setNav"></div>
+
+        <div class="set-inputs" id="setInputs">
+            <div class="input-group">
+                <label>🏋️ Килограммы</label>
+                <input type="number" id="weightInput" placeholder="вес" step="2.5">
+            </div>
+            <div class="input-group">
+                <label>🔄 Повторы</label>
+                <input type="number" id="repsInput" placeholder="повторы">
+            </div>
+        </div>
+
+        <div class="action-buttons">
+            <div class="btn btn-primary" id="saveSetBtn">✅ Сохранить подход</div>
+            <div class="btn btn-secondary" id="skipSetBtn">⏭ Пропустить</div>
+        </div>
+
+        <div class="add-comment" id="addCommentBtn">
+            <span>💬</span> Добавить комментарий
+        </div>
+    </div>
+
+    <div class="tabs">
+        <div class="tab active" data-tab="history">📋 История</div>
+        <div class="tab" data-tab="chart">📈 График</div>
+    </div>
+
+    <div id="historyTab" class="history-list"></div>
+    <div id="chartTab" class="chart-container hidden">
+        <canvas id="progressChart"></canvas>
+    </div>
+
+    <script>
+        // Инициализация Telegram Web App
+        let tg = window.Telegram.WebApp;
+        tg.expand();
+        tg.MainButton.hide();
+        tg.BackButton.hide();
+
+        // Текущие данные тренировки
+        let currentWorkout = {
+            id: null,
+            name: "Тренировка 3/8",
+            date: new Date().toISOString().split('T')[0],
+            exercises: []
+        };
+
+        let currentExerciseIndex = 0;
+        let currentSetIndex = 0;
+
+        // Загрузка данных тренировки с сервера (позже заменим на реальные)
+        function loadWorkoutData() {
+            // Здесь будет загрузка из CloudStorage
+            let saved = tg.CloudStorage.getItem('workout_' + currentWorkout.date);
+            if (saved) {
+                currentWorkout = JSON.parse(saved);
+            } else {
+                // Демо-данные
+                currentWorkout.exercises = [
+                    {
+                        name: "Приседания со штангой",
+                        muscle: "Ноги",
+                        sets: [
+                            { type: "Разминка 50%", targetWeight: 45, minWeight: 45, maxWeight: 50, targetReps: 5, rest: 60, completed: false, weight: null, reps: null },
+                            { type: "Разминка 65%", targetWeight: 55, minWeight: 55, maxWeight: 60, targetReps: 4, rest: 60, completed: false, weight: null, reps: null },
+                            { type: "Сила", targetWeight: 75, minWeight: 75, maxWeight: 80, targetReps: 5, rest: 150, completed: false, weight: null, reps: null },
+                            { type: "Масса", targetWeight: 65, minWeight: 65, maxWeight: 70, targetReps: 10, rest: 90, completed: false, weight: null, reps: null },
+                            { type: "Выносливость", targetWeight: 50, minWeight: 50, maxWeight: 55, targetReps: 20, rest: 45, completed: false, weight: null, reps: null },
+                            { type: "Закатка", targetWeight: 60, minWeight: 60, maxWeight: 60, targetReps: 12, rest: 60, completed: false, weight: null, reps: null }
+                        ]
+                    },
+                    {
+                        name: "Жим гантелей сидя",
+                        muscle: "Дельты",
+                        sets: [
+                            { type: "Подход 1", targetWeight: 24, targetReps: 10, rest: 90, completed: false, weight: null, reps: null },
+                            { type: "Подход 2", targetWeight: 24, targetReps: 10, rest: 90, completed: false, weight: null, reps: null },
+                            { type: "Подход 3", targetWeight: 24, targetReps: 10, rest: 90, completed: false, weight: null, reps: null },
+                            { type: "Подход 4", targetWeight: 24, targetReps: 10, rest: 90, completed: false, weight: null, reps: null }
+                        ]
+                    }
+                ];
+            }
+            updateUI();
+        }
+
+        function updateUI() {
+            const exercise = currentWorkout.exercises[currentExerciseIndex];
+            if (!exercise) return;
+
+            document.getElementById('exerciseName').innerText = exercise.name;
+            document.getElementById('exerciseMuscle').innerText = exercise.muscle;
+            
+            // Обновляем навигацию по подходам
+            const nav = document.getElementById('setNav');
+            nav.innerHTML = '';
+            exercise.sets.forEach((set, idx) => {
+                const tab = document.createElement('div');
+                tab.className = 'set-tab';
+                if (idx === currentSetIndex) tab.classList.add('active');
+                if (set.completed) tab.classList.add('completed');
+                tab.innerText = set.type || `${idx + 1}`;
+                tab.onclick = () => {
+                    currentSetIndex = idx;
+                    updateUI();
+                };
+                nav.appendChild(tab);
+            });
+
+            const currentSet = exercise.sets[currentSetIndex];
+            
+            // Заполняем поля
+            document.getElementById('weightInput').value = currentSet.weight !== null ? currentSet.weight : (currentSet.targetWeight || '');
+            document.getElementById('repsInput').value = currentSet.reps !== null ? currentSet.reps : (currentSet.targetReps || '');
+            
+            // Обновляем статистику
+            let totalSets = 0, completedSets = 0, totalVolume = 0;
+            currentWorkout.exercises.forEach(ex => {
+                totalSets += ex.sets.length;
+                ex.sets.forEach(set => {
+                    if (set.completed) {
+                        completedSets++;
+                        if (set.weight && set.reps) totalVolume += set.weight * set.reps;
+                    }
+                });
+            });
+            document.getElementById('totalSets').innerText = totalSets;
+            document.getElementById('completedSets').innerText = completedSets;
+            document.getElementById('totalVolume').innerText = totalVolume;
+            document.getElementById('workoutDate').innerText = currentWorkout.date;
+        }
+
+        function saveCurrentSet() {
+            const exercise = currentWorkout.exercises[currentExerciseIndex];
+            const set = exercise.sets[currentSetIndex];
+            
+            const weight = parseFloat(document.getElementById('weightInput').value);
+            const reps = parseInt(document.getElementById('repsInput').value);
+            
+            if (!weight || !reps) {
+                tg.showAlert('Введи вес и количество повторений');
+                return;
+            }
+            
+            set.weight = weight;
+            set.reps = reps;
+            set.completed = true;
+            set.completedAt = new Date().toISOString();
+            
+            // Сохраняем в облако
+            tg.CloudStorage.setItem('workout_' + currentWorkout.date, JSON.stringify(currentWorkout));
+            
+            // Переход на следующий подход
+            if (currentSetIndex + 1 < exercise.sets.length) {
+                currentSetIndex++;
+                updateUI();
+                // Показываем уведомление о следующем подходе
+                tg.showAlert(`✅ Сохранено! Следующий подход: ${exercise.sets[currentSetIndex].type || 'подход ' + (currentSetIndex + 1)}`);
+            } else if (currentExerciseIndex + 1 < currentWorkout.exercises.length) {
+                // Переход к следующему упражнению
+                currentExerciseIndex++;
+                currentSetIndex = 0;
+                updateUI();
+                tg.showAlert(`🏋️ Переход к упражнению: ${currentWorkout.exercises[currentExerciseIndex].name}`);
+            } else {
+                tg.showAlert('🎉 Поздравляю! Тренировка завершена!');
+                tg.sendData(JSON.stringify({ action: 'workout_completed', data: currentWorkout }));
+            }
+        }
+
+        function skipSet() {
+            const exercise = currentWorkout.exercises[currentExerciseIndex];
+            const set = exercise.sets[currentSetIndex];
+            
+            if (currentSetIndex + 1 < exercise.sets.length) {
+                currentSetIndex++;
+            } else if (currentExerciseIndex + 1 < currentWorkout.exercises.length) {
+                currentExerciseIndex++;
+                currentSetIndex = 0;
+            }
+            updateUI();
+        }
+
+        // Показать историю
+        function showHistory() {
+            const container = document.getElementById('historyTab');
+            container.innerHTML = '';
+            
+            // Группируем по датам
+            const grouped = {};
+            // Здесь будет загрузка истории из CloudStorage
+            // Пока демо-данные со скринов
+            const demoHistory = [
+                { date: "27.04.2026", sets: [
+                    { number: 4, weight: 50, reps: 10, time: "16:22" },
+                    { number: 3, weight: 60, reps: 12, time: "16:20" },
+                    { number: 2, weight: 70, reps: 8, time: "16:18" },
+                    { number: 1, weight: 80, reps: 5, time: "16:15" }
+                ]},
+                { date: "21.04.2026", sets: [
+                    { number: 3, weight: 45, reps: 8, time: "14:05" },
+                    { number: 2, weight: 41, reps: 10, time: "14:03" },
+                    { number: 1, weight: 36, reps: 10, time: "14:02" }
+                ]}
+            ];
+            
+            demoHistory.forEach(day => {
+                const dateDiv = document.createElement('div');
+                dateDiv.className = 'history-date';
+                dateDiv.innerText = day.date;
+                container.appendChild(dateDiv);
+                
+                day.sets.forEach(set => {
+                    const item = document.createElement('div');
+                    item.className = 'history-item';
+                    item.innerHTML = `
+                        <div class="history-set">#${set.number}</div>
+                        <div class="history-weight">${set.weight} кг</div>
+                        <div class="history-reps">x ${set.reps} повт.</div>
+                        <div class="history-time">${set.time}</div>
+                    `;
+                    container.appendChild(item);
+                });
+            });
+        }
+
+        // Показать график
+        function showChart() {
+            const canvas = document.getElementById('progressChart');
+            const ctx = canvas.getContext('2d');
+            
+            // Демо-данные для графика
+            const weights = [32, 36, 41, 45, 45, 50, 55, 60, 65, 70, 75, 80];
+            const reps = [12, 12, 10, 10, 8, 10, 8, 8, 6, 6, 5, 5];
+            
+            canvas.width = canvas.offsetWidth;
+            canvas.height = 200;
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#ff6b35';
+            
+            const step = canvas.width / weights.length;
+            for (let i = 0; i < weights.length; i++) {
+                const height = (weights[i] / 100) * canvas.height;
+                ctx.fillRect(i * step, canvas.height - height, step - 2, height);
+            }
+        }
+
+        // Обработчики вкладок
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                
+                const tabName = tab.dataset.tab;
+                document.getElementById('historyTab').classList.toggle('hidden', tabName !== 'history');
+                document.getElementById('chartTab').classList.toggle('hidden', tabName !== 'chart');
+                
+                if (tabName === 'history') showHistory();
+                if (tabName === 'chart') showChart();
+            });
+        });
+
+        // Кнопки
+        document.getElementById('saveSetBtn').onclick = saveCurrentSet;
+        document.getElementById('skipSetBtn').onclick = skipSet;
+        document.getElementById('addCommentBtn').onclick = () => {
+            const comment = prompt('Введи комментарий к подходу:');
+            if (comment) {
+                const exercise = currentWorkout.exercises[currentExerciseIndex];
+                const set = exercise.sets[currentSetIndex];
+                set.comment = comment;
+                tg.CloudStorage.setItem('workout_' + currentWorkout.date, JSON.stringify(currentWorkout));
+                tg.showAlert('✅ Комментарий сохранён');
+            }
+        };
+
+        // Загрузка
+        loadWorkoutData();
+    </script>
+</body>
+</html>
